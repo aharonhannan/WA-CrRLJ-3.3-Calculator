@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TrialCalculator, getResetTypeLabel, getExclusionTypeLabel, parseLocalDate, isValidDateString, isValidDateRange } from './trialCalculator';
+import { getNextCourtDay } from './courtDays';
 import type { CalculatorParams, ResetEvent, ExclusionPeriod } from '../types';
 
 describe('TrialCalculator', () => {
@@ -249,8 +250,10 @@ describe('TrialCalculator', () => {
       };
       const result = calculator.calculate(params);
       expect(result.baseTimeLimit).toBe(90);
-      // Verify the deadline is 90 days from arraignment
-      const expectedDeadline = calculator.addDays(parseLocalDate('2024-01-01'), 90);
+      // Verify the deadline is 90 days from arraignment, adjusted for court days per CRLJ 6(a)
+      // Jan 1 + 90 = Mar 31, 2024 (Sunday) -> rolls to Monday Apr 1
+      const rawDeadline = calculator.addDays(parseLocalDate('2024-01-01'), 90);
+      const expectedDeadline = getNextCourtDay(rawDeadline);
       expect(result.finalDeadline.getTime()).toBe(expectedDeadline.getTime());
     });
   });
@@ -457,11 +460,13 @@ describe('TrialCalculator', () => {
       };
       const result = calculator.calculate(params);
 
-      // Standard deadline: Jan 1 + 90 + 6 = Jan 1 + 96 days = Apr 6, 2024
+      // Standard deadline: Jan 1 + 90 + 6 = Jan 1 + 96 days = Apr 6, 2024 (Saturday)
+      // Per CRLJ 6(a), Saturday rolls to Monday Apr 8, 2024
       // 30 days after exclusion end: Jan 15 + 30 = Feb 14, 2024
-      // Apr 6 > Feb 14, so use Apr 6
+      // Apr 8 > Feb 14, so use Apr 8
 
-      const expectedStandardDeadline = calculator.addDays(parseLocalDate('2024-01-01'), 96);
+      const rawDeadline = calculator.addDays(parseLocalDate('2024-01-01'), 96);
+      const expectedStandardDeadline = getNextCourtDay(rawDeadline);
       const thirtyAfterExclusion = calculator.addDays(parseLocalDate('2024-01-15'), 30);
 
       expect(result.finalDeadline.getTime()).toBe(expectedStandardDeadline.getTime());
@@ -803,5 +808,218 @@ describe('Label functions', () => {
     expect(getExclusionTypeLabel('competency')).toBe('Competency Proceedings');
     expect(getExclusionTypeLabel('continuance')).toBe('Continuance');
     expect(getExclusionTypeLabel('unknown')).toBe('unknown');
+  });
+});
+
+describe('CRLJ 6(a) Court Day Adjustment', () => {
+  let calculator: TrialCalculator;
+
+  beforeEach(() => {
+    calculator = new TrialCalculator();
+  });
+
+  it('should roll Saturday deadline to Monday - detained 60 days', () => {
+    // Nov 15, 2024 (Friday) + 60 days = Jan 14, 2025 (Tuesday) - no adjustment needed
+    // Let's find a date that lands on Saturday:
+    // Nov 2, 2024 (Saturday) + 60 days = Jan 1, 2025 (Wednesday, holiday) -> Jan 2
+    // Actually: Oct 31, 2024 (Thursday) + 60 days = Dec 30, 2024 (Monday) - fine
+    // Oct 26, 2024 (Saturday) + 60 days = Dec 25, 2024 (Wednesday, Christmas) -> Dec 26
+    // Let's try: Nov 9, 2024 (Saturday) + 60 = Jan 8, 2025 (Wednesday) - fine
+    // We need arraignment where +60 = Saturday
+    // Jan 3, 2025 (Friday) + 60 = Mar 4, 2025 (Tuesday) - fine
+    // Jan 4, 2025 (Saturday) - can't arraign on weekend
+    // Let's use: Dec 6, 2024 (Friday) + 60 = Feb 4, 2025 (Tuesday) - fine
+    // Dec 5, 2024 (Thursday) + 60 = Feb 3, 2025 (Monday) - fine
+    // Need: arraignment on X where X + 60 = Saturday
+    // Feb 1, 2025 (Saturday) - 60 = Dec 3, 2024 (Tuesday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-12-03', // Tuesday
+      custodyStatus: 'detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: false
+    };
+    const result = calculator.calculate(params);
+    // Dec 3 + 60 = Feb 1, 2025 (Saturday) -> should roll to Monday Feb 3
+    expect(result.finalDeadline.getFullYear()).toBe(2025);
+    expect(result.finalDeadline.getMonth()).toBe(1); // February
+    expect(result.finalDeadline.getDate()).toBe(3);
+    expect(result.finalDeadline.getDay()).toBe(1); // Monday
+  });
+
+  it('should roll Sunday deadline to Monday - not detained 90 days', () => {
+    // Need arraignment where +90 = Sunday
+    // Feb 2, 2025 (Sunday) - 90 = Nov 4, 2024 (Monday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-11-04', // Monday
+      custodyStatus: 'not-detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: false
+    };
+    const result = calculator.calculate(params);
+    // Nov 4 + 90 = Feb 2, 2025 (Sunday) -> should roll to Monday Feb 3
+    expect(result.finalDeadline.getFullYear()).toBe(2025);
+    expect(result.finalDeadline.getMonth()).toBe(1); // February
+    expect(result.finalDeadline.getDate()).toBe(3);
+    expect(result.finalDeadline.getDay()).toBe(1); // Monday
+  });
+
+  it('should roll holiday deadline to next court day - Christmas 2024', () => {
+    // Need arraignment where +60 = Dec 25, 2024 (Wednesday, Christmas)
+    // Dec 25 - 60 = Oct 26, 2024 (Saturday) - can't use
+    // Let's use not-detained: Dec 25 - 90 = Sep 26, 2024 (Thursday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-09-26', // Thursday
+      custodyStatus: 'not-detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: false
+    };
+    const result = calculator.calculate(params);
+    // Sep 26 + 90 = Dec 25, 2024 (Christmas) -> should roll to Thursday Dec 26
+    expect(result.finalDeadline.getFullYear()).toBe(2024);
+    expect(result.finalDeadline.getMonth()).toBe(11); // December
+    expect(result.finalDeadline.getDate()).toBe(26);
+    expect(result.finalDeadline.getDay()).toBe(4); // Thursday
+  });
+
+  it('should roll MLK Day 2025 deadline to Tuesday', () => {
+    // MLK Day 2025 is Jan 20 (Monday)
+    // Need +60 = Jan 20: Jan 20 - 60 = Nov 21, 2024 (Thursday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-11-21', // Thursday
+      custodyStatus: 'detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: false
+    };
+    const result = calculator.calculate(params);
+    // Nov 21 + 60 = Jan 20, 2025 (MLK Day) -> should roll to Tuesday Jan 21
+    expect(result.finalDeadline.getFullYear()).toBe(2025);
+    expect(result.finalDeadline.getMonth()).toBe(0); // January
+    expect(result.finalDeadline.getDate()).toBe(21);
+    expect(result.finalDeadline.getDay()).toBe(2); // Tuesday
+  });
+
+  it('should handle weekend before MLK Day - Saturday rolls past holiday to Tuesday', () => {
+    // Jan 18, 2025 (Saturday) before MLK Day (Jan 20)
+    // Saturday -> Sunday -> MLK Monday -> Tuesday Jan 21
+    // Need +60 = Jan 18: Jan 18 - 60 = Nov 19, 2024 (Tuesday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-11-19', // Tuesday
+      custodyStatus: 'detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: false
+    };
+    const result = calculator.calculate(params);
+    // Nov 19 + 60 = Jan 18, 2025 (Saturday) -> Sun -> MLK Mon -> Tuesday Jan 21
+    expect(result.finalDeadline.getFullYear()).toBe(2025);
+    expect(result.finalDeadline.getMonth()).toBe(0); // January
+    expect(result.finalDeadline.getDate()).toBe(21);
+    expect(result.finalDeadline.getDay()).toBe(2); // Tuesday
+  });
+
+  it('should apply court day adjustment to cure deadline', () => {
+    // Set up so cure deadline lands on weekend
+    // Use detained (14 day cure) where final + 14 = Saturday
+    // Final deadline: Jan 18, 2025 (Sat->Tue Jan 21)
+    // Jan 21 + 14 = Feb 4, 2025 (Tuesday) - no adjustment
+    // Let's try: final = Monday Jan 20 (MLK, rolls to Tue Jan 21)
+    // Jan 21 + 14 = Feb 4 (Tue) - fine
+    // Need final + 14 = Saturday
+    // If final = Fri Jan 17 -> + 14 = Sat Jan 31 -> Mon Feb 2 (wait, check if holiday)
+    // Need arraignment where +60 = Jan 17: Jan 17 - 60 = Nov 18, 2024 (Monday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-11-18', // Monday
+      custodyStatus: 'detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: true
+    };
+    const result = calculator.calculate(params);
+    // Nov 18 + 60 = Jan 17, 2025 (Friday, regular day)
+    // finalDeadline = Jan 17 (Friday, no adjustment needed)
+    // cureDeadline = Jan 17 + 14 = Jan 31, 2025 (Friday, regular day)
+    expect(result.finalDeadline.getDate()).toBe(17);
+    expect(result.cureDeadline?.getDate()).toBe(31);
+
+    // Now test with deadline landing on Saturday for cure
+    // Final = Wed Jan 15, cure +14 = Wed Jan 29 - fine
+    // Need final = Sat: Dec 3, 2024 + 60 = Feb 1, 2025 (Sat) -> Mon Feb 3
+    // cure: Feb 3 + 14 = Feb 17, 2025 (Monday, Presidents Day) -> Tue Feb 18
+    const params2: CalculatorParams = {
+      arraignmentDate: '2024-12-03',
+      custodyStatus: 'detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: true
+    };
+    const result2 = calculator.calculate(params2);
+    // finalDeadline = Feb 3 (Monday)
+    // cureDeadline = Feb 3 + 14 = Feb 17, 2025 (Presidents Day) -> Tue Feb 18
+    expect(result2.cureDeadline?.getMonth()).toBe(1); // February
+    expect(result2.cureDeadline?.getDate()).toBe(18);
+    expect(result2.cureDeadline?.getDay()).toBe(2); // Tuesday
+  });
+
+  it('should handle Thanksgiving week - Thursday and Friday both holidays', () => {
+    // Thanksgiving 2024: Nov 28 (Thu), Native American Heritage: Nov 29 (Fri)
+    // If deadline = Nov 28, rolls to Mon Dec 2
+    // Need +60 = Nov 28: Nov 28 - 60 = Sep 29, 2024 (Sunday) - can't
+    // Use not-detained 90: Nov 28 - 90 = Aug 30, 2024 (Friday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-08-30', // Friday
+      custodyStatus: 'not-detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: false
+    };
+    const result = calculator.calculate(params);
+    // Aug 30 + 90 = Nov 28, 2024 (Thanksgiving) -> Fri Nov 29 (holiday) -> Sat -> Sun -> Mon Dec 2
+    expect(result.finalDeadline.getFullYear()).toBe(2024);
+    expect(result.finalDeadline.getMonth()).toBe(11); // December
+    expect(result.finalDeadline.getDate()).toBe(2);
+    expect(result.finalDeadline.getDay()).toBe(1); // Monday
+  });
+
+  it('should not change deadline on regular weekday', () => {
+    // Verify no false adjustments - pick a date that lands on Wednesday
+    // Jan 1, 2025 (Wednesday, but New Year's) - skip
+    // Jan 8, 2025 (Wednesday, regular)
+    // +60 = Jan 8: Jan 8 - 60 = Nov 9, 2024 (Saturday) - can't
+    // +90 = Jan 8: Jan 8 - 90 = Oct 10, 2024 (Thursday)
+    const params: CalculatorParams = {
+      arraignmentDate: '2024-10-10', // Thursday
+      custodyStatus: 'not-detained',
+      releaseDate: null,
+      resets: [],
+      exclusions: [],
+      scheduledTrialDate: null,
+      useCurePeriod: false
+    };
+    const result = calculator.calculate(params);
+    // Oct 10 + 90 = Jan 8, 2025 (Wednesday, regular day)
+    expect(result.finalDeadline.getFullYear()).toBe(2025);
+    expect(result.finalDeadline.getMonth()).toBe(0); // January
+    expect(result.finalDeadline.getDate()).toBe(8);
+    expect(result.finalDeadline.getDay()).toBe(3); // Wednesday
   });
 });

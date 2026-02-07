@@ -8,6 +8,7 @@ import type {
   CalculatorParams,
   CalculationResults
 } from '../types';
+import { getNextCourtDay } from './courtDays';
 
 /**
  * Parse a date string (YYYY-MM-DD) as local midnight.
@@ -184,11 +185,16 @@ export function calculate(params: CalculatorParams): CalculationResults {
     }
   }
 
+  // Apply CRLJ 6(a): If deadline falls on Saturday, Sunday, or legal holiday,
+  // extend to next court business day per RCW 1.16.050
+  finalDeadline = getNextCourtDay(finalDeadline);
+
   let cureDeadline: Date | null = null;
   let cureDays = 0;
   if (useCurePeriod) {
     cureDays = custodyStatus === 'detained' ? 14 : 28;
-    cureDeadline = addDays(finalDeadline, cureDays);
+    // Apply CRLJ 6(a) court day adjustment to cure deadline as well
+    cureDeadline = getNextCourtDay(addDays(finalDeadline, cureDays));
   }
 
   let isTimely: boolean | null = null;
