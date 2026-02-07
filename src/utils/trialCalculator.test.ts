@@ -38,6 +38,36 @@ describe('TrialCalculator', () => {
       expect(result.getMonth()).toBe(1); // Still February
       expect(result.getDate()).toBe(29);
     });
+
+    it('should correctly calculate 60 days from Jan 1, 2024 (leap year)', () => {
+      // Jan 1 + 60 days = Mar 1, 2024 (2024 is leap year)
+      // Jan: 31 days, Feb: 29 days = 60 days total
+      const start = parseLocalDate('2024-01-01');
+      const result = calculator.addDays(start, 60);
+      expect(result.getFullYear()).toBe(2024);
+      expect(result.getMonth()).toBe(2); // March (0-indexed)
+      expect(result.getDate()).toBe(1);
+    });
+
+    it('should correctly calculate 90 days from Jan 1, 2024', () => {
+      // Jan 1 + 90 days = Mar 31, 2024
+      // Jan: 31, Feb: 29, Mar: 30 more = 90 days
+      const start = parseLocalDate('2024-01-01');
+      const result = calculator.addDays(start, 90);
+      expect(result.getFullYear()).toBe(2024);
+      expect(result.getMonth()).toBe(2); // March
+      expect(result.getDate()).toBe(31);
+    });
+
+    it('should correctly calculate 60 days from Jan 1, 2023 (non-leap year)', () => {
+      // Jan 1 + 60 days in non-leap year = Mar 2, 2023
+      // Jan: 31 days, Feb: 28 days = 59 days, +1 = Mar 2
+      const start = parseLocalDate('2023-01-01');
+      const result = calculator.addDays(start, 60);
+      expect(result.getFullYear()).toBe(2023);
+      expect(result.getMonth()).toBe(2); // March
+      expect(result.getDate()).toBe(2);
+    });
   });
 
   describe('daysBetween', () => {
@@ -56,6 +86,15 @@ describe('TrialCalculator', () => {
       const start = new Date(2024, 0, 11);
       const end = new Date(2024, 0, 1);
       expect(calculator.daysBetween(start, end)).toBe(-10);
+    });
+
+    it('should verify inclusive day counting for exclusions', () => {
+      // Jan 10 to Jan 15 inclusive = 6 days (10, 11, 12, 13, 14, 15)
+      const start = parseLocalDate('2024-01-10');
+      const end = parseLocalDate('2024-01-15');
+      const daysBetween = calculator.daysBetween(start, end);
+      const inclusiveDays = daysBetween + 1;
+      expect(inclusiveDays).toBe(6);
     });
   });
 
@@ -128,6 +167,56 @@ describe('TrialCalculator', () => {
       expect(result.totalDays).toBe(0);
       expect(result.periods).toHaveLength(0);
     });
+
+    it('should count single day exclusion as 1 day (inclusive)', () => {
+      const commencement = new Date(2024, 0, 1);
+      const exclusions: ExclusionPeriod[] = [
+        { id: 1, type: 'continuance', startDate: '2024-01-15', endDate: '2024-01-15', notes: '' }
+      ];
+      const result = calculator.calculateExcludedDays(commencement, exclusions);
+      expect(result.totalDays).toBe(1);
+      expect(result.periods).toHaveLength(1);
+      expect(result.periods[0].days).toBe(1);
+    });
+
+    it('should sum overlapping exclusions independently (current behavior)', () => {
+      // NOTE: Current implementation counts each period independently,
+      // which may result in double-counting overlapping days.
+      // This documents the current behavior.
+      const commencement = new Date(2024, 0, 1);
+      const exclusions: ExclusionPeriod[] = [
+        { id: 1, type: 'continuance', startDate: '2024-01-10', endDate: '2024-01-20', notes: '' }, // 11 days
+        { id: 2, type: 'competency', startDate: '2024-01-15', endDate: '2024-01-25', notes: '' }  // 11 days
+      ];
+      const result = calculator.calculateExcludedDays(commencement, exclusions);
+      // Current behavior: 11 + 11 = 22 days (double counts Jan 15-20)
+      // Note: Actual calendar days would be 16 (Jan 10-25)
+      expect(result.totalDays).toBe(22);
+      expect(result.periods).toHaveLength(2);
+    });
+
+    it('should ignore exclusion that starts before commencement date entirely', () => {
+      // Current behavior: if exclusion starts before commencement, entire exclusion is ignored
+      const commencement = new Date(2024, 0, 15); // Jan 15
+      const exclusions: ExclusionPeriod[] = [
+        { id: 1, type: 'continuance', startDate: '2024-01-10', endDate: '2024-01-20', notes: '' }
+      ];
+      const result = calculator.calculateExcludedDays(commencement, exclusions);
+      // Current behavior: startDate (Jan 10) < commencement (Jan 15), so excluded = 0
+      // Note: Arguably should count Jan 15-20 = 6 days
+      expect(result.totalDays).toBe(0);
+      expect(result.periods).toHaveLength(0);
+    });
+
+    it('should count exclusion that starts exactly on commencement date', () => {
+      const commencement = new Date(2024, 0, 15); // Jan 15
+      const exclusions: ExclusionPeriod[] = [
+        { id: 1, type: 'continuance', startDate: '2024-01-15', endDate: '2024-01-20', notes: '' }
+      ];
+      const result = calculator.calculateExcludedDays(commencement, exclusions);
+      expect(result.totalDays).toBe(6); // Jan 15-20 inclusive
+      expect(result.periods).toHaveLength(1);
+    });
   });
 
   describe('calculate - basic time limits', () => {
@@ -196,6 +285,41 @@ describe('TrialCalculator', () => {
       expect(result.baseTimeLimit).toBe(60);
       expect(result.wasReleased).toBe(false);
     });
+
+    it('should NOT extend to 90 days when released exactly on day 60 - Section (b)(3)', () => {
+      // Rule: "If a defendant is released from jail BEFORE the 60-day time limit
+      // has expired, the limit shall be extended to 90 days"
+      // Released ON day 60 means the limit has expired, so no extension
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '2024-03-01', // Exactly day 60 (Jan has 31, Feb has 29 in 2024)
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '',
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+      // Day 60 from Jan 1 = Mar 1 (31 days in Jan + 29 days in Feb = 60)
+      // Release ON day 60 should NOT trigger extension (rule says "before")
+      expect(result.baseTimeLimit).toBe(60);
+      expect(result.wasReleased).toBe(false);
+    });
+
+    it('should extend to 90 days when released on day 59', () => {
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '2024-02-29', // Day 59 (one day before 60-day mark)
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '',
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+      expect(result.baseTimeLimit).toBe(90);
+      expect(result.wasReleased).toBe(true);
+    });
   });
 
   describe('calculate - resets', () => {
@@ -217,6 +341,59 @@ describe('TrialCalculator', () => {
       // Deadline should be 60 days from reset date
       const expectedDeadline = calculator.addDays(parseLocalDate('2024-02-01'), 60);
       expect(result.finalDeadline.getTime()).toBe(expectedDeadline.getTime());
+    });
+
+    it('should handle failure-to-appear reset - Section (c)(2)(ii)', () => {
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [
+          { id: 1, type: 'failure-to-appear', date: '2024-02-15', notes: 'Defendant FTA on scheduled date' }
+        ],
+        exclusions: [],
+        scheduledTrialDate: '',
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+      expect(result.effectiveCommencementDate.getTime()).toBe(parseLocalDate('2024-02-15').getTime());
+      const expectedDeadline = calculator.addDays(parseLocalDate('2024-02-15'), 60);
+      expect(result.finalDeadline.getTime()).toBe(expectedDeadline.getTime());
+    });
+
+    it('should handle new-trial reset (mistrial/new trial granted) - Section (c)(2)(iii)', () => {
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'not-detained',
+        releaseDate: '',
+        resets: [
+          { id: 1, type: 'new-trial', date: '2024-03-01', notes: 'Mistrial declared' }
+        ],
+        exclusions: [],
+        scheduledTrialDate: '',
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+      expect(result.effectiveCommencementDate.getTime()).toBe(parseLocalDate('2024-03-01').getTime());
+    });
+
+    it('should handle multiple different reset types and use latest - Section (c)(2)', () => {
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [
+          { id: 1, type: 'waiver', date: '2024-01-20', notes: '' },
+          { id: 2, type: 'failure-to-appear', date: '2024-02-10', notes: '' },
+          { id: 3, type: 'venue-change', date: '2024-02-05', notes: '' }
+        ],
+        exclusions: [],
+        scheduledTrialDate: '',
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+      // Latest reset is Feb 10 (failure-to-appear)
+      expect(result.effectiveCommencementDate.getTime()).toBe(parseLocalDate('2024-02-10').getTime());
     });
   });
 
@@ -242,7 +419,7 @@ describe('TrialCalculator', () => {
   });
 
   describe('calculate - 30-day minimum rule', () => {
-    it('should apply 30-day minimum after exclusion ends when needed', () => {
+    it('should apply 30-day minimum after exclusion ends when needed - Section (b)(5)', () => {
       const params: CalculatorParams = {
         arraignmentDate: '2024-01-01',
         custodyStatus: 'detained',
@@ -263,10 +440,58 @@ describe('TrialCalculator', () => {
       // The deadline should be at least 30 days after exclusion end
       expect(result.finalDeadline.getTime()).toBeGreaterThanOrEqual(thirtyDaysAfterExclusion.getTime());
     });
+
+    it('should use standard deadline when already past 30 days after exclusion end', () => {
+      // When standard deadline is already > 30 days after exclusion end,
+      // use the standard deadline (the longer of the two)
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'not-detained', // 90 days
+        releaseDate: '',
+        resets: [],
+        exclusions: [
+          { id: 1, type: 'continuance', startDate: '2024-01-10', endDate: '2024-01-15', notes: '' } // 6 days
+        ],
+        scheduledTrialDate: '',
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+
+      // Standard deadline: Jan 1 + 90 + 6 = Jan 1 + 96 days = Apr 6, 2024
+      // 30 days after exclusion end: Jan 15 + 30 = Feb 14, 2024
+      // Apr 6 > Feb 14, so use Apr 6
+
+      const expectedStandardDeadline = calculator.addDays(parseLocalDate('2024-01-01'), 96);
+      const thirtyAfterExclusion = calculator.addDays(parseLocalDate('2024-01-15'), 30);
+
+      expect(result.finalDeadline.getTime()).toBe(expectedStandardDeadline.getTime());
+      expect(result.finalDeadline.getTime()).toBeGreaterThan(thirtyAfterExclusion.getTime());
+    });
+
+    it('should correctly apply 30-day minimum with multiple exclusions (use latest end date)', () => {
+      // Use the LATEST exclusion end date for 30-day minimum calculation
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained', // 60 days
+        releaseDate: '',
+        resets: [],
+        exclusions: [
+          { id: 1, type: 'continuance', startDate: '2024-01-10', endDate: '2024-01-15', notes: '' }, // 6 days
+          { id: 2, type: 'competency', startDate: '2024-02-20', endDate: '2024-02-28', notes: '' }  // 9 days, ends later
+        ],
+        scheduledTrialDate: '',
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+
+      // 30 days after LATEST exclusion end (Feb 28)
+      const thirtyAfterLatestExclusion = calculator.addDays(parseLocalDate('2024-02-28'), 30);
+      expect(result.finalDeadline.getTime()).toBeGreaterThanOrEqual(thirtyAfterLatestExclusion.getTime());
+    });
   });
 
   describe('calculate - cure period', () => {
-    it('should add 14-day cure period for detained', () => {
+    it('should add 14-day cure period for detained - Section (g)', () => {
       const params: CalculatorParams = {
         arraignmentDate: '2024-01-01',
         custodyStatus: 'detained',
@@ -284,7 +509,7 @@ describe('TrialCalculator', () => {
       expect(result.cureDeadline!.getTime()).toBe(expectedCureDeadline.getTime());
     });
 
-    it('should add 28-day cure period for not detained', () => {
+    it('should add 28-day cure period for not detained - Section (g)', () => {
       const params: CalculatorParams = {
         arraignmentDate: '2024-01-01',
         custodyStatus: 'not-detained',
@@ -315,6 +540,35 @@ describe('TrialCalculator', () => {
       const result = calculator.calculate(params);
       expect(result.cureDays).toBe(0);
       expect(result.cureDeadline).toBeNull();
+    });
+
+    it('should mark untimely when after regular deadline but before cure, without cure enabled', () => {
+      // Ensures cure period only applies when explicitly requested
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '2024-03-10', // Day 69 (after 60-day deadline)
+        useCurePeriod: false // Cure NOT enabled
+      };
+      const result = calculator.calculate(params);
+      expect(result.isTimely).toBe(false);
+    });
+
+    it('should mark timely when same date falls within cure period when enabled', () => {
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '2024-03-10', // Day 69 (within 60+14=74 day cure)
+        useCurePeriod: true // Cure enabled
+      };
+      const result = calculator.calculate(params);
+      expect(result.isTimely).toBe(true);
     });
   });
 
@@ -374,6 +628,64 @@ describe('TrialCalculator', () => {
       };
       const result = calculator.calculate(params);
       expect(result.isTimely).toBeNull();
+    });
+
+    it('should mark trial as timely when scheduled exactly on deadline', () => {
+      // Trial on the deadline should be timely (rule uses "within" which is inclusive)
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '2024-03-01', // Exactly day 60
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+      expect(result.isTimely).toBe(true);
+    });
+
+    it('should mark trial as untimely when scheduled one day after deadline', () => {
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '2024-03-02', // Day 61
+        useCurePeriod: false
+      };
+      const result = calculator.calculate(params);
+      expect(result.isTimely).toBe(false);
+    });
+
+    it('should mark trial as timely when exactly on cure deadline', () => {
+      // Arraignment Jan 1 + 60 days = Mar 1 + 14 days cure = Mar 15
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '2024-03-15', // Exactly on cure deadline
+        useCurePeriod: true
+      };
+      const result = calculator.calculate(params);
+      expect(result.isTimely).toBe(true);
+    });
+
+    it('should mark trial as untimely when one day after cure deadline', () => {
+      const params: CalculatorParams = {
+        arraignmentDate: '2024-01-01',
+        custodyStatus: 'detained',
+        releaseDate: '',
+        resets: [],
+        exclusions: [],
+        scheduledTrialDate: '2024-03-16', // One day after cure deadline
+        useCurePeriod: true
+      };
+      const result = calculator.calculate(params);
+      expect(result.isTimely).toBe(false);
     });
   });
 
