@@ -1,0 +1,52 @@
+import ResultSummary from './ResultSummary';
+import Timeline from './Timeline';
+import CalculationDetails from './CalculationDetails';
+import { generateExportText } from '../../utils/trialCalculator';
+import type { CalculationResults, CalculatorParams } from '../../types';
+
+interface ResultsProps {
+  results: CalculationResults;
+  formData: CalculatorParams;
+}
+
+function Results({ results, formData }: ResultsProps) {
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExport = () => {
+    const text = generateExportText(formData, results);
+
+    // Download as text file
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CrRLJ3.3-Calculation-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <section className="card results-section">
+      <h2>Calculation Results</h2>
+
+      <ResultSummary results={results} />
+      <Timeline results={results} />
+      <CalculationDetails results={results} />
+
+      <div className="button-container">
+        <button type="button" className="btn-secondary" onClick={handlePrint}>
+          Print Results
+        </button>
+        <button type="button" className="btn-secondary" onClick={handleExport}>
+          Export to Text
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export default Results;
