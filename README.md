@@ -1,6 +1,17 @@
-# WA CrRLJ 3.3 Time for Trial Calculator
+# Washington State Speedy Trial Calculator (CrRLJ 3.3)
 
-A React single-page application for calculating trial deadlines under Washington State Criminal Court Rule CrRLJ 3.3.
+**Free online calculator for Washington State "Right to Speedy Trial" deadlines under CrRLJ 3.3**
+
+Calculate trial deadlines for Washington's **courts of limited jurisdiction** (district and municipal courts). CrRLJ 3.3 mandates that trials occur within **60 days** for in-custody defendants and **90 days** for out-of-custody defendants from the date of arraignment. Violations typically result in **dismissal with prejudice**.
+
+## Live Calculator
+
+**[https://aharonhannan.github.io/WA-CrRLJ-3.3-Calculator/](https://aharonhannan.github.io/WA-CrRLJ-3.3-Calculator/)**
+
+## Why Use This Calculator?
+- **Handles complex scenarios** - Resets, exclusions, cure periods, and the 30-day minimum rule
+- **Visual timeline** - See all critical dates at a glance
+- **Free and open source** - MIT licensed
 
 ## Features
 
@@ -51,8 +62,6 @@ npm install
 npm run dev
 ```
 
-This starts a local development server at `http://localhost:5173`
-
 ### Build for Production
 
 ```bash
@@ -74,7 +83,7 @@ npm run deploy
 ```
 
 This builds and deploys to GitHub Pages. The site will be available at:
-`https://<username>.github.io/wa-crrlj03-calculator/`
+`https://aharonhannan.github.io/WA-CrRLJ-3.3-Calculator/`
 
 ## How to Use
 
@@ -185,10 +194,19 @@ Key sections:
 
 ## License
 
-This calculator is provided as-is for use by legal professionals in Washington State.
+MIT License - See [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions welcome! Please open an issue or submit a pull request.
+
+## Keywords
+
+Washington speedy trial, CrRLJ 3.3, right to speedy trial, WA criminal defense, time for trial calculator, district court deadline, municipal court deadline, 60 day rule, 90 day rule, speedy trial dismissal, courts of limited jurisdiction, Washington criminal court rules
 
 ---
 
 **Version**: 2.0 (React SPA)
+**Author**: Aharon Hannan
 **Last Updated**: February 2026
 **Rule Version**: CrRLJ 3.3 (Effective July 9, 2024)
