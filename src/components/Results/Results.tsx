@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import ResultSummary from './ResultSummary';
 import Timeline from './Timeline';
 import CalculationDetails from './CalculationDetails';
@@ -9,7 +10,7 @@ interface ResultsProps {
   formData: CalculatorParams;
 }
 
-function Results({ results, formData }: ResultsProps) {
+const Results = forwardRef<HTMLDivElement, ResultsProps>(function Results({ results, formData }, ref) {
   const handlePrint = () => {
     window.print();
   };
@@ -30,7 +31,7 @@ function Results({ results, formData }: ResultsProps) {
   };
 
   return (
-    <section className="card results-section">
+    <div ref={ref} className="card results-section">
       <h2>Calculation Results</h2>
 
       <ResultSummary results={results} />
@@ -45,8 +46,8 @@ function Results({ results, formData }: ResultsProps) {
           Export to Text
         </button>
       </div>
-    </section>
+    </div>
   );
-}
+});
 
 export default Results;

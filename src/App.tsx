@@ -126,6 +126,22 @@ function App() {
     setResults(null);
   };
 
+  // Wrapper functions to clear results when form data changes
+  const handleFormChange = (newFormData: FormData) => {
+    setFormData(newFormData);
+    setResults(null);
+  };
+
+  const handleResetsChange = (newResets: ResetEvent[]) => {
+    setResets(newResets);
+    setResults(null);
+  };
+
+  const handleExclusionsChange = (newExclusions: ExclusionPeriod[]) => {
+    setExclusions(newExclusions);
+    setResults(null);
+  };
+
   const handleLoadSession = (data: CalculatorParams) => {
     setFormData({
       arraignmentDate: data.arraignmentDate,
@@ -166,22 +182,22 @@ function App() {
 
         <BasicInfoSection
           formData={formData}
-          onFormChange={setFormData}
+          onFormChange={handleFormChange}
         />
 
         <ResetsSection
           resets={resets}
-          onResetsChange={setResets}
+          onResetsChange={handleResetsChange}
         />
 
         <ExclusionsSection
           exclusions={exclusions}
-          onExclusionsChange={setExclusions}
+          onExclusionsChange={handleExclusionsChange}
         />
 
         <TrialInfoSection
           formData={formData}
-          onFormChange={setFormData}
+          onFormChange={handleFormChange}
         />
 
         <ButtonContainer
@@ -190,9 +206,7 @@ function App() {
         />
 
         {results && (
-          <div ref={resultsRef}>
-            <Results results={results} formData={getFullFormData()} />
-          </div>
+          <Results ref={resultsRef} results={results} formData={getFullFormData()} />
         )}
       </main>
 

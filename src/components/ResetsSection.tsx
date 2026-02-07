@@ -1,3 +1,4 @@
+import DateInput from './DateInput';
 import { RESET_TYPE_LABELS } from '../utils/trialCalculator';
 import type { ResetEvent } from '../types';
 
@@ -60,11 +61,9 @@ function ResetsSection({ resets, onResetsChange }: ResetsSectionProps) {
               </div>
               <div className="form-group">
                 <label>New Commencement Date: <span className="required">*</span></label>
-                <input
-                  type="date"
+                <DateInput
                   value={reset.date}
-                  onChange={(e) => updateReset(reset.id, 'date', e.target.value)}
-                  required
+                  onChange={(value) => updateReset(reset.id, 'date', value)}
                 />
               </div>
             </div>

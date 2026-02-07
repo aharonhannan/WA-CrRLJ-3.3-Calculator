@@ -3,6 +3,8 @@ import { STRINGS } from '../strings';
 import { getSavedSessions, saveSession, deleteSession, sessionExists } from '../utils/storage';
 import type { SavedSession } from '../utils/storage';
 import type { CalculatorParams } from '../types';
+import ChevronDown from '../assets/icons/chevron-down.svg?react';
+import ChevronUp from '../assets/icons/chevron-up.svg?react';
 
 interface SavedSessionsProps {
   currentData: CalculatorParams;
@@ -116,7 +118,7 @@ function SavedSessions({ currentData, onLoadSession, onMessage }: SavedSessionsP
       >
         <h2>{STRINGS.sections.savedSessions}</h2>
         <span className="collapse-icon" aria-hidden="true">
-          {isExpanded ? '▼' : '▶'}
+          {!isExpanded ? <ChevronDown /> : <ChevronUp />}
         </span>
       </button>
 

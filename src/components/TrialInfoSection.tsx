@@ -1,3 +1,4 @@
+import DateInput from './DateInput';
 import type { FormData } from '../types';
 
 interface TrialInfoSectionProps {
@@ -16,11 +17,11 @@ function TrialInfoSection({ formData, onFormChange }: TrialInfoSectionProps) {
 
       <div className="form-group">
         <label htmlFor="trialDate">Scheduled Trial Date:</label>
-        <input
-          type="date"
+        <DateInput
           id="trialDate"
           value={formData.scheduledTrialDate}
-          onChange={(e) => handleTrialDateChange(e.target.value)}
+          onChange={handleTrialDateChange}
+          isClearable
         />
         <small>Enter the currently scheduled trial date to check if it&apos;s within the allowable time</small>
       </div>

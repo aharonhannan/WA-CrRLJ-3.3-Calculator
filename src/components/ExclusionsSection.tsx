@@ -1,3 +1,4 @@
+import DateInput from './DateInput';
 import { EXCLUSION_TYPE_LABELS } from '../utils/trialCalculator';
 import type { ExclusionPeriod } from '../types';
 
@@ -63,20 +64,16 @@ function ExclusionsSection({ exclusions, onExclusionsChange }: ExclusionsSection
             <div className="form-row">
               <div className="form-group">
                 <label>Start Date: <span className="required">*</span></label>
-                <input
-                  type="date"
+                <DateInput
                   value={exclusion.startDate}
-                  onChange={(e) => updateExclusion(exclusion.id, 'startDate', e.target.value)}
-                  required
+                  onChange={(value) => updateExclusion(exclusion.id, 'startDate', value)}
                 />
               </div>
               <div className="form-group">
                 <label>End Date: <span className="required">*</span></label>
-                <input
-                  type="date"
+                <DateInput
                   value={exclusion.endDate}
-                  onChange={(e) => updateExclusion(exclusion.id, 'endDate', e.target.value)}
-                  required
+                  onChange={(value) => updateExclusion(exclusion.id, 'endDate', value)}
                 />
               </div>
             </div>

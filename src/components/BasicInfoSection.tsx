@@ -1,3 +1,4 @@
+import DateInput from './DateInput';
 import type { FormData, CustodyStatus } from '../types';
 
 interface BasicInfoSectionProps {
@@ -29,12 +30,13 @@ function BasicInfoSection({ formData, onFormChange }: BasicInfoSectionProps) {
         <label htmlFor="arraignmentDate">
           Arraignment Date (Initial Commencement Date): <span className="required">*</span>
         </label>
-        <input
-          type="date"
+        <DateInput
           id="arraignmentDate"
+          name="arraignmentDate"
           value={formData.arraignmentDate}
-          onChange={(e) => handleArraignmentDateChange(e.target.value)}
+          onChange={handleArraignmentDateChange}
           required
+          aria-required="true"
         />
         <small>The date determined under CrRLJ 4.1(b)</small>
       </div>
@@ -71,11 +73,11 @@ function BasicInfoSection({ formData, onFormChange }: BasicInfoSectionProps) {
       {formData.custodyStatus === 'detained' && (
         <div className="form-group">
           <label htmlFor="releaseDate">Date Released from Jail (if applicable):</label>
-          <input
-            type="date"
+          <DateInput
             id="releaseDate"
             value={formData.releaseDate}
-            onChange={(e) => handleReleaseDateChange(e.target.value)}
+            onChange={handleReleaseDateChange}
+            isClearable
           />
           <small>If released before the 60-day limit expired, the limit extends to 90 days</small>
         </div>
