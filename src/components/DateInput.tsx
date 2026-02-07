@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 
 interface DateInputProps {
@@ -80,12 +80,15 @@ function parseUserInput(input: string, allowTwoDigitYear = true): string {
   return '';
 }
 
-// Calculate date limits (+/- 3 years from today)
-const today = new Date();
-const minDate = new Date(today.getFullYear() - 3, 0, 1); // January 1st, 3 years ago
-const maxDate = new Date(today.getFullYear() + 3, 11, 31); // December 31st, 3 years from now
-
 function DateInput({ id, value, onChange, placeholder = 'MM/DD/YYYY', isClearable = false }: DateInputProps) {
+  // Calculate date limits (+/- 3 years from today) - recalculated if component remounts
+  const { minDate, maxDate } = useMemo(() => {
+    const today = new Date();
+    return {
+      minDate: new Date(today.getFullYear() - 3, 0, 1), // January 1st, 3 years ago
+      maxDate: new Date(today.getFullYear() + 3, 11, 31) // December 31st, 3 years from now
+    };
+  }, []);
   const [inputValue, setInputValue] = useState(toDisplayFormat(value));
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

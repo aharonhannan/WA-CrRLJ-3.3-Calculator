@@ -32,11 +32,8 @@ function BasicInfoSection({ formData, onFormChange }: BasicInfoSectionProps) {
         </label>
         <DateInput
           id="arraignmentDate"
-          name="arraignmentDate"
           value={formData.arraignmentDate}
           onChange={handleArraignmentDateChange}
-          required
-          aria-required="true"
         />
         <small>The date determined under CrRLJ 4.1(b)</small>
       </div>
