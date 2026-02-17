@@ -97,7 +97,7 @@ function SavedSessions({ currentData, onLoadSession, onMessage }: SavedSessionsP
     }
   };
 
-  const formatDate = (isoString: string): string => {
+  const formatDateTime = (isoString: string): string => {
     return new Date(isoString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -157,7 +157,7 @@ function SavedSessions({ currentData, onLoadSession, onMessage }: SavedSessionsP
                 <div key={session.name} className="session-item" role="listitem">
                   <div className="session-info">
                     <strong>{session.name}</strong>
-                    <small>{formatDate(session.savedAt)}</small>
+                    <small>{formatDateTime(session.savedAt)}</small>
                   </div>
                   <div className="session-actions">
                     <button
@@ -174,7 +174,7 @@ function SavedSessions({ currentData, onLoadSession, onMessage }: SavedSessionsP
                       onClick={() => handleDelete(session.name)}
                       aria-label={confirmDelete === session.name ? `Confirm delete: ${session.name}` : `Delete session: ${session.name}`}
                     >
-                      {confirmDelete === session.name ? 'Are you sure?' : STRINGS.buttons.delete}
+                      {confirmDelete === session.name ? STRINGS.confirm.areYouSure : STRINGS.buttons.delete}
                     </button>
                   </div>
                 </div>
@@ -183,7 +183,7 @@ function SavedSessions({ currentData, onLoadSession, onMessage }: SavedSessionsP
           )}
 
           {sessions.length === 0 && (
-            <p className="no-sessions">No saved sessions yet. Save your current form to access it later.</p>
+            <p className="no-sessions">{STRINGS.savedSessions.empty}</p>
           )}
 
           <p className="local-storage-note">{STRINGS.disclaimer.localStorage}</p>

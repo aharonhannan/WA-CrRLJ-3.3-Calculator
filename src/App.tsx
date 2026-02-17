@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import BasicInfoSection from './components/BasicInfoSection';
 import ResetsSection from './components/ResetsSection';
@@ -10,6 +10,7 @@ import MessageOverlay from './components/MessageOverlay';
 import ButtonContainer from './components/ButtonContainer';
 import SavedSessions from './components/SavedSessions';
 import { calculate } from './utils/trialCalculator';
+import { validateCalculatorInput } from './utils/validation';
 import { STRINGS } from './strings';
 import type { FormData, ResetEvent, ExclusionPeriod, CalculationResults, Message, CalculatorParams } from './types';
 import './App.css';
@@ -42,77 +43,22 @@ function App() {
   };
 
   const handleCalculate = () => {
-    // Validate mandatory fields first
-    const requiredFields: string[] = [];
-    if (!formData.arraignmentDate) {
-      requiredFields.push('Arraignment Date');
-    }
-    if (!formData.custodyStatus) {
-      requiredFields.push('Custody Status');
-    }
+    const { requiredErrors, validationErrors } = validateCalculatorInput(formData, resets, exclusions);
 
-    if (requiredFields.length > 0) {
-      showMessage(STRINGS.errors.requiredFields(requiredFields), 'error');
+    if (requiredErrors.length > 0) {
+      showMessage(STRINGS.errors.requiredFields(requiredErrors), 'error');
       return;
     }
-
-    // Validation errors
-    const validationErrors: string[] = [];
-
-    // Validate exclusion periods have both dates if any exclusion exists
-    const incompleteExclusions = exclusions.filter(e => !e.startDate || !e.endDate);
-    if (incompleteExclusions.length > 0) {
-      validationErrors.push(STRINGS.errors.incompleteExclusion);
-    }
-
-    // Validate exclusion date ranges (end date must be >= start date)
-    exclusions.forEach((exclusion, index) => {
-      if (exclusion.startDate && exclusion.endDate && new Date(exclusion.endDate) < new Date(exclusion.startDate)) {
-        validationErrors.push(STRINGS.errors.exclusionEndBeforeStart(index + 1));
-      }
-    });
-
-    // Validate reset dates are filled
-    const incompleteResets = resets.filter(r => !r.date);
-    if (incompleteResets.length > 0) {
-      validationErrors.push(STRINGS.errors.incompleteReset);
-    }
-
-    // Date order validations
-    const arraignmentDate = new Date(formData.arraignmentDate);
-
-    // Validate release date is not before arraignment
-    if (formData.releaseDate && new Date(formData.releaseDate) < arraignmentDate) {
-      validationErrors.push(STRINGS.errors.releaseBeforeArraignment);
-    }
-
-    // Validate reset dates are not before arraignment
-    resets.forEach((reset, index) => {
-      if (reset.date && new Date(reset.date) < arraignmentDate) {
-        validationErrors.push(STRINGS.errors.resetBeforeArraignment(index + 1));
-      }
-    });
-
-    // Validate exclusion start dates are not before arraignment
-    exclusions.forEach((exclusion, index) => {
-      if (exclusion.startDate && new Date(exclusion.startDate) < arraignmentDate) {
-        validationErrors.push(STRINGS.errors.exclusionBeforeArraignment(index + 1));
-      }
-    });
 
     if (validationErrors.length > 0) {
       showMessage(STRINGS.errors.validationErrors(validationErrors), 'error');
       return;
     }
 
-    // Filter out empty exclusions (no dates at all)
-    const validResets = resets.filter(r => r.date);
-    const validExclusions = exclusions.filter(e => e.startDate && e.endDate);
-
     const calculationParams: CalculatorParams = {
       ...formData,
-      resets: validResets,
-      exclusions: validExclusions
+      resets: resets.filter(r => r.date),
+      exclusions: exclusions.filter(e => e.startDate && e.endDate)
     };
 
     const calculatedResults = calculate(calculationParams);
@@ -146,8 +92,8 @@ function App() {
     setFormData({
       arraignmentDate: data.arraignmentDate,
       custodyStatus: data.custodyStatus,
-      releaseDate: data.releaseDate,
-      scheduledTrialDate: data.scheduledTrialDate,
+      releaseDate: data.releaseDate ?? '',
+      scheduledTrialDate: data.scheduledTrialDate ?? '',
       useCurePeriod: data.useCurePeriod
     });
     setResets(data.resets || []);
@@ -163,11 +109,11 @@ function App() {
   }, [results]);
 
   // Get full form data for export/save
-  const getFullFormData = (): CalculatorParams => ({
+  const fullFormData = useMemo((): CalculatorParams => ({
     ...formData,
     resets: resets.filter(r => r.date),
     exclusions: exclusions.filter(e => e.startDate && e.endDate)
-  });
+  }), [formData, resets, exclusions]);
 
   return (
     <div className="container">
@@ -175,7 +121,7 @@ function App() {
 
       <main>
         <SavedSessions
-          currentData={getFullFormData()}
+          currentData={fullFormData}
           onLoadSession={handleLoadSession}
           onMessage={showMessage}
         />
@@ -206,7 +152,7 @@ function App() {
         />
 
         {results && (
-          <Results ref={resultsRef} results={results} formData={getFullFormData()} />
+          <Results ref={resultsRef} results={results} formData={fullFormData} />
         )}
       </main>
 

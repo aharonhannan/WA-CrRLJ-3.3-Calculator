@@ -9,6 +9,7 @@ import type {
   CalculationResults
 } from '../types';
 import { getNextCourtDay } from './courtDays';
+import { STRINGS } from '../strings';
 
 /**
  * Parse a date string (YYYY-MM-DD) as local midnight.
@@ -25,27 +26,6 @@ export function parseLocalDate(dateString: string): Date {
 }
 
 /**
- * Validate a date string is in YYYY-MM-DD format and represents a valid date
- */
-export function isValidDateString(dateString: string): boolean {
-  if (!dateString || dateString.length !== 10) return false;
-  const regex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!regex.test(dateString)) return false;
-  const date = parseLocalDate(dateString);
-  return !isNaN(date.getTime());
-}
-
-/**
- * Validate that end date is after or equal to start date
- */
-export function isValidDateRange(startDate: string, endDate: string): boolean {
-  if (!isValidDateString(startDate) || !isValidDateString(endDate)) {
-    return false;
-  }
-  return parseLocalDate(endDate) >= parseLocalDate(startDate);
-}
-
-/**
  * Add days to a date
  */
 export function addDays(date: Date, days: number): Date {
@@ -58,8 +38,11 @@ export function addDays(date: Date, days: number): Date {
  * Calculate days between two dates
  */
 export function daysBetween(startDate: Date, endDate: Date): number {
+  const startTime = startDate.getTime();
+  const endTime = endDate.getTime();
+  if (isNaN(startTime) || isNaN(endTime)) return 0;
   const oneDay = 24 * 60 * 60 * 1000;
-  return Math.round((endDate.getTime() - startDate.getTime()) / oneDay);
+  return Math.round((endTime - startTime) / oneDay);
 }
 
 /**
@@ -203,7 +186,9 @@ export function calculate(params: CalculatorParams): CalculationResults {
     const trialDate = parseLocalDate(scheduledTrialDate);
     const applicableDeadline = useCurePeriod && cureDeadline ? cureDeadline : finalDeadline;
     isTimely = trialDate <= applicableDeadline;
-    daysUntilDeadline = daysBetween(new Date(), applicableDeadline);
+    const today = new Date();
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    daysUntilDeadline = daysBetween(todayMidnight, applicableDeadline);
   }
 
   return {
@@ -223,17 +208,6 @@ export function calculate(params: CalculatorParams): CalculationResults {
     daysUntilDeadline,
     resets: resets || []
   };
-}
-
-// Keep class for backwards compatibility but delegate to functions
-export class TrialCalculator {
-  addDays = addDays;
-  daysBetween = daysBetween;
-  formatDate = formatDate;
-  getEffectiveCommencementDate = getEffectiveCommencementDate;
-  calculateExcludedDays = calculateExcludedDays;
-  getLatestExclusionEndDate = getLatestExclusionEndDate;
-  calculate = calculate;
 }
 
 export const RESET_TYPE_LABELS = {
@@ -269,15 +243,15 @@ export const generateExportText = (
   formData: CalculatorParams,
   calculated: CalculationResults
 ): string => {
-  let text = 'WA CrRLJ 3.3 TIME FOR TRIAL CALCULATION\n';
+  let text = `${STRINGS.export.title}\n`;
   text += '='.repeat(50) + '\n\n';
-  text += `Generated: ${new Date().toLocaleString()}\n\n`;
-  text += `Arraignment Date: ${formatDate(parseLocalDate(formData.arraignmentDate))}\n`;
-  text += `Custody Status: ${formData.custodyStatus === 'detained' ? 'Detained in Jail' : 'Not Detained in Jail'}\n`;
-  text += `Base Time Limit: ${calculated.baseTimeLimit} days\n\n`;
+  text += `${STRINGS.export.generated} ${new Date().toLocaleString()}\n\n`;
+  text += `${STRINGS.export.arraignmentDate} ${formatDate(parseLocalDate(formData.arraignmentDate))}\n`;
+  text += `${STRINGS.export.custodyStatus} ${formData.custodyStatus === 'detained' ? STRINGS.export.custodyDetained : STRINGS.export.custodyNotDetained}\n`;
+  text += `${STRINGS.export.baseTimeLimit} ${calculated.baseTimeLimit} days\n\n`;
 
   if (calculated.resets.length > 0) {
-    text += 'COMMENCEMENT DATE RESETS:\n';
+    text += `${STRINGS.export.commencementResets}\n`;
     calculated.resets.forEach((reset, i) => {
       text += `  ${i + 1}. ${getResetTypeLabel(reset.type)} - ${formatDate(parseLocalDate(reset.date))}\n`;
     });
@@ -285,30 +259,28 @@ export const generateExportText = (
   }
 
   if (calculated.excludedPeriods.length > 0) {
-    text += 'EXCLUDED PERIODS:\n';
+    text += `${STRINGS.export.excludedPeriods}\n`;
     calculated.excludedPeriods.forEach((period, i) => {
       text += `  ${i + 1}. ${getExclusionTypeLabel(period.type)}\n`;
       text += `     ${formatDate(period.startDate)} to ${formatDate(period.endDate)} (${period.days} days)\n`;
     });
-    text += `\nTotal Excluded Days: ${calculated.excludedDays}\n\n`;
+    text += `\n${STRINGS.export.totalExcludedDays} ${calculated.excludedDays}\n\n`;
   }
 
   const deadline = calculated.useCurePeriod && calculated.cureDeadline
     ? calculated.cureDeadline
     : calculated.finalDeadline;
 
-  text += `TRIAL DEADLINE: ${formatDate(deadline)}\n`;
+  text += `${STRINGS.export.trialDeadline} ${formatDate(deadline)}\n`;
 
   if (calculated.useCurePeriod) {
-    text += `(Includes ${calculated.cureDays}-day cure period)\n`;
+    text += `${STRINGS.results.includesCurePeriod(calculated.cureDays)}\n`;
   }
 
   if (calculated.scheduledTrialDate) {
-    text += `\nScheduled Trial: ${formatDate(calculated.scheduledTrialDate)}\n`;
-    text += `Status: ${calculated.isTimely ? 'TIMELY' : 'UNTIMELY'}\n`;
+    text += `\n${STRINGS.export.scheduledTrial} ${formatDate(calculated.scheduledTrialDate)}\n`;
+    text += `${STRINGS.export.status} ${calculated.isTimely ? STRINGS.export.timely : STRINGS.export.untimely}\n`;
   }
 
   return text;
 };
-
-export default TrialCalculator;

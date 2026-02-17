@@ -967,10 +967,6 @@ footer {
         print-color-adjust: exact;
     }
 
-    .results-section .button-container {
-        display: none;
-    }
-
     .timeline-event {
         page-break-inside: avoid;
     }

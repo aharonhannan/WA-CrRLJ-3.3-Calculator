@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { formatDate, addDays } from '../../utils/trialCalculator';
+import { STRINGS } from '../../strings';
 import type { CalculationResults } from '../../types';
 
 interface CalculationDetailsProps {
@@ -26,57 +27,57 @@ function CalculationDetails({ results }: CalculationDetailsProps) {
 
   return (
     <div className="details-container">
-      <h3>Calculation Breakdown</h3>
+      <h3>{STRINGS.results.calculationBreakdown}</h3>
       <table className="calculation-table">
         <thead>
           <tr>
-            <th>Component</th>
-            <th>Details</th>
+            <th>{STRINGS.results.component}</th>
+            <th>{STRINGS.results.detailsHeader}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Effective Commencement Date</td>
+            <td>{STRINGS.results.effectiveCommencementDate}</td>
             <td>{formatDate(results.effectiveCommencementDate)}</td>
           </tr>
           <tr>
-            <td>Base Time Limit</td>
-            <td>{results.baseTimeLimit} days (Defendant {results.baseTimeLimit === 60 ? 'detained in jail' : 'not detained in jail'})</td>
+            <td>{STRINGS.results.baseTimeLimit}</td>
+            <td>{results.baseTimeLimit} {STRINGS.results.days} (Defendant {results.baseTimeLimit === 60 ? STRINGS.results.detainedInJail : STRINGS.results.notDetainedInJail})</td>
           </tr>
           <tr>
-            <td>Excluded Days</td>
-            <td>{results.excludedDays} days</td>
+            <td>{STRINGS.results.excludedDays}</td>
+            <td>{results.excludedDays} {STRINGS.results.days}</td>
           </tr>
           <tr>
-            <td>Base Calculation</td>
+            <td>{STRINGS.results.baseCalculation}</td>
             <td>
-              {formatDate(results.effectiveCommencementDate)} + {results.baseTimeLimit} days + {results.excludedDays} excluded = {formatDate(results.baseDeadline)}
+              {formatDate(results.effectiveCommencementDate)} + {results.baseTimeLimit} {STRINGS.results.days} + {results.excludedDays} excluded = {formatDate(results.baseDeadline)}
             </td>
           </tr>
 
           {thirtyDayRuleInfo && (
             <tr>
-              <td>30-Day Minimum Rule</td>
+              <td>{STRINGS.results.thirtyDayRule}</td>
               <td>
                 Latest exclusion ended {formatDate(thirtyDayRuleInfo.latestEndDate)}<br />
                 30 days after = {formatDate(thirtyDayRuleInfo.thirtyDaysAfter)}<br />
                 {thirtyDayRuleInfo.applied
-                  ? <strong>Applied (extends deadline)</strong>
-                  : 'Not needed (base deadline is later)'
+                  ? <strong>{STRINGS.results.appliedExtends}</strong>
+                  : STRINGS.results.notNeeded
                 }
               </td>
             </tr>
           )}
 
           <tr className="total-row">
-            <td><strong>Final Trial Deadline</strong></td>
+            <td><strong>{STRINGS.results.finalDeadline}</strong></td>
             <td><strong>{formatDate(results.finalDeadline)}</strong></td>
           </tr>
 
           {results.useCurePeriod && results.cureDeadline && (
             <tr className="cure-row">
-              <td><strong>With Cure Period</strong></td>
-              <td><strong>{formatDate(results.cureDeadline)}</strong> (+{results.cureDays} days)</td>
+              <td><strong>{STRINGS.results.withCurePeriod}</strong></td>
+              <td><strong>{formatDate(results.cureDeadline)}</strong> (+{results.cureDays} {STRINGS.results.days})</td>
             </tr>
           )}
         </tbody>

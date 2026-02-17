@@ -1,4 +1,5 @@
 import DateInput from './DateInput';
+import { STRINGS } from '../strings';
 import type { FormData, CustodyStatus } from '../types';
 
 interface BasicInfoSectionProps {
@@ -25,22 +26,22 @@ function BasicInfoSection({ formData, onFormChange }: BasicInfoSectionProps) {
 
   return (
     <section className="card">
-      <h2>1. Basic Information</h2>
+      <h2>{STRINGS.sections.basicInfo}</h2>
       <div className="form-group">
         <label htmlFor="arraignmentDate">
-          Arraignment Date (Initial Commencement Date): <span className="required">*</span>
+          {STRINGS.labels.arraignmentDate} <span className="required">{STRINGS.status.required}</span>
         </label>
         <DateInput
           id="arraignmentDate"
           value={formData.arraignmentDate}
           onChange={handleArraignmentDateChange}
         />
-        <small>The date determined under CrRLJ 4.1(b)</small>
+        <small>{STRINGS.helpText.arraignmentDate}</small>
       </div>
 
       <div className="form-group">
         <label>
-          Defendant&apos;s Custody Status: <span className="required">*</span>
+          {STRINGS.labels.custodyStatus} <span className="required">{STRINGS.status.required}</span>
         </label>
         <div className="radio-group">
           <label className={`radio-label ${formData.custodyStatus === 'detained' ? 'selected' : ''}`}>
@@ -51,7 +52,7 @@ function BasicInfoSection({ formData, onFormChange }: BasicInfoSectionProps) {
               checked={formData.custodyStatus === 'detained'}
               onChange={() => handleCustodyChange('detained')}
             />
-            <span>Detained in Jail (60-day limit)</span>
+            <span>{STRINGS.helpText.custodyDetained}</span>
           </label>
           <label className={`radio-label ${formData.custodyStatus === 'not-detained' ? 'selected' : ''}`}>
             <input
@@ -61,22 +62,22 @@ function BasicInfoSection({ formData, onFormChange }: BasicInfoSectionProps) {
               checked={formData.custodyStatus === 'not-detained'}
               onChange={() => handleCustodyChange('not-detained')}
             />
-            <span>Not Detained in Jail (90-day limit)</span>
+            <span>{STRINGS.helpText.custodyNotDetained}</span>
           </label>
         </div>
-        <small>If released before 60-day limit expires, the limit extends to 90 days</small>
+        <small>{STRINGS.helpText.releaseExtension}</small>
       </div>
 
       {formData.custodyStatus === 'detained' && (
         <div className="form-group">
-          <label htmlFor="releaseDate">Date Released from Jail (if applicable):</label>
+          <label htmlFor="releaseDate">{STRINGS.labels.releaseDate}</label>
           <DateInput
             id="releaseDate"
             value={formData.releaseDate}
             onChange={handleReleaseDateChange}
             isClearable
           />
-          <small>If released before the 60-day limit expired, the limit extends to 90 days</small>
+          <small>{STRINGS.helpText.releaseExtension}</small>
         </div>
       )}
     </section>

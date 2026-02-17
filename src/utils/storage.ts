@@ -10,11 +10,23 @@ export interface SavedSession {
 
 const STORAGE_KEY = 'crrlj3-saved-sessions';
 
+function isValidSession(value: unknown): value is SavedSession {
+  if (typeof value !== 'object' || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  if (typeof obj.name !== 'string' || typeof obj.savedAt !== 'string') return false;
+  if (typeof obj.data !== 'object' || obj.data === null) return false;
+  const data = obj.data as Record<string, unknown>;
+  return typeof data.arraignmentDate === 'string' && typeof data.custodyStatus === 'string';
+}
+
 export function getSavedSessions(): SavedSession[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(isValidSession);
+      }
     }
   } catch (e) {
     console.error('Failed to load saved sessions:', e);

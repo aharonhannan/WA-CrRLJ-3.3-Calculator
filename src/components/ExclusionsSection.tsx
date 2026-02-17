@@ -1,5 +1,7 @@
 import DateInput from './DateInput';
 import { EXCLUSION_TYPE_LABELS } from '../utils/trialCalculator';
+import { STRINGS } from '../strings';
+import { useDynamicList } from '../hooks/useDynamicList';
 import type { ExclusionPeriod } from '../types';
 
 interface ExclusionsSectionProps {
@@ -8,52 +10,37 @@ interface ExclusionsSectionProps {
 }
 
 function ExclusionsSection({ exclusions, onExclusionsChange }: ExclusionsSectionProps) {
+  const { addItem, removeItem, updateItem } = useDynamicList(exclusions, onExclusionsChange);
+
   const addExclusion = () => {
-    const newExclusion: ExclusionPeriod = {
-      id: Date.now(),
-      type: 'competency',
-      startDate: '',
-      endDate: '',
-      notes: ''
-    };
-    onExclusionsChange([...exclusions, newExclusion]);
-  };
-
-  const removeExclusion = (id: number) => {
-    onExclusionsChange(exclusions.filter(exclusion => exclusion.id !== id));
-  };
-
-  const updateExclusion = (id: number, field: keyof ExclusionPeriod, value: string) => {
-    onExclusionsChange(exclusions.map(exclusion =>
-      exclusion.id === id ? { ...exclusion, [field]: value } : exclusion
-    ));
+    addItem({ type: 'competency', startDate: '', endDate: '', notes: '' });
   };
 
   return (
     <section className="card">
-      <h2>3. Excluded Periods</h2>
-      <p className="info-text">Add any periods that should be excluded from the time calculation:</p>
+      <h2>{STRINGS.sections.exclusions}</h2>
+      <p className="info-text">{STRINGS.helpText.exclusionInfo}</p>
 
       <div id="exclusionsContainer">
         {exclusions.map((exclusion, index) => (
           <div key={exclusion.id} className="dynamic-field">
             <div className="field-header">
-              <h4>Excluded Period {index + 1}</h4>
+              <h4>{STRINGS.labels.excludedPeriodTitle(index + 1)}</h4>
               <button
                 type="button"
                 className="btn-remove"
-                onClick={() => removeExclusion(exclusion.id)}
+                onClick={() => removeItem(exclusion.id)}
                 aria-label={`Remove exclusion period ${index + 1}`}
               >
-                ✕ Remove
+                {STRINGS.buttons.remove}
               </button>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Exclusion Type:</label>
+                <label>{STRINGS.labels.exclusionType}</label>
                 <select
                   value={exclusion.type}
-                  onChange={(e) => updateExclusion(exclusion.id, 'type', e.target.value)}
+                  onChange={(e) => updateItem(exclusion.id, 'type', e.target.value)}
                 >
                   {Object.entries(EXCLUSION_TYPE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -63,27 +50,27 @@ function ExclusionsSection({ exclusions, onExclusionsChange }: ExclusionsSection
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Start Date: <span className="required">*</span></label>
+                <label>{STRINGS.labels.startDate} <span className="required">{STRINGS.status.required}</span></label>
                 <DateInput
                   value={exclusion.startDate}
-                  onChange={(value) => updateExclusion(exclusion.id, 'startDate', value)}
+                  onChange={(value) => updateItem(exclusion.id, 'startDate', value)}
                 />
               </div>
               <div className="form-group">
-                <label>End Date: <span className="required">*</span></label>
+                <label>{STRINGS.labels.endDate} <span className="required">{STRINGS.status.required}</span></label>
                 <DateInput
                   value={exclusion.endDate}
-                  onChange={(value) => updateExclusion(exclusion.id, 'endDate', value)}
+                  onChange={(value) => updateItem(exclusion.id, 'endDate', value)}
                 />
               </div>
             </div>
             <div className="form-group">
-              <label>Notes:</label>
+              <label>{STRINGS.labels.notes}</label>
               <input
                 type="text"
                 value={exclusion.notes}
-                onChange={(e) => updateExclusion(exclusion.id, 'notes', e.target.value)}
-                placeholder="Additional details..."
+                onChange={(e) => updateItem(exclusion.id, 'notes', e.target.value)}
+                placeholder={STRINGS.placeholders.notes}
               />
             </div>
           </div>
@@ -91,7 +78,7 @@ function ExclusionsSection({ exclusions, onExclusionsChange }: ExclusionsSection
       </div>
 
       <button type="button" className="btn-secondary" onClick={addExclusion}>
-        + Add Excluded Period
+        {STRINGS.buttons.addExclusion}
       </button>
     </section>
   );

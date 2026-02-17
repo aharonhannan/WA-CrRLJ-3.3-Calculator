@@ -1,4 +1,5 @@
 import DateInput from './DateInput';
+import { STRINGS } from '../strings';
 import type { FormData } from '../types';
 
 interface TrialInfoSectionProps {
@@ -13,17 +14,17 @@ function TrialInfoSection({ formData, onFormChange }: TrialInfoSectionProps) {
 
   return (
     <section className="card">
-      <h2>4. Trial Information</h2>
+      <h2>{STRINGS.sections.trialInfo}</h2>
 
       <div className="form-group">
-        <label htmlFor="trialDate">Scheduled Trial Date:</label>
+        <label htmlFor="trialDate">{STRINGS.labels.scheduledTrialDate}</label>
         <DateInput
           id="trialDate"
           value={formData.scheduledTrialDate}
           onChange={handleTrialDateChange}
           isClearable
         />
-        <small>Enter the currently scheduled trial date to check if it&apos;s within the allowable time</small>
+        <small>{STRINGS.helpText.scheduledTrial}</small>
       </div>
 
       <div className="form-group">
@@ -33,9 +34,9 @@ function TrialInfoSection({ formData, onFormChange }: TrialInfoSectionProps) {
             checked={formData.useCurePeriod}
             onChange={(e) => onFormChange({ ...formData, useCurePeriod: e.target.checked })}
           />
-          Apply Cure Period (if trial limit has expired)
+          {STRINGS.labels.useCurePeriod}
         </label>
-        <small>Extends deadline by 14 days (detained) or 28 days (not detained). Can only be used once per case.</small>
+        <small>{STRINGS.helpText.curePeriod}</small>
       </div>
     </section>
   );

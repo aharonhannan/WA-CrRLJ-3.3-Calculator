@@ -3,6 +3,7 @@ import ResultSummary from './ResultSummary';
 import Timeline from './Timeline';
 import CalculationDetails from './CalculationDetails';
 import { generateExportText } from '../../utils/trialCalculator';
+import { STRINGS } from '../../strings';
 import type { CalculationResults, CalculatorParams } from '../../types';
 
 interface ResultsProps {
@@ -32,7 +33,7 @@ const Results = forwardRef<HTMLDivElement, ResultsProps>(function Results({ resu
 
   return (
     <div ref={ref} className="card results-section">
-      <h2>Calculation Results</h2>
+      <h2>{STRINGS.sections.results}</h2>
 
       <ResultSummary results={results} />
       <Timeline results={results} />
@@ -40,10 +41,10 @@ const Results = forwardRef<HTMLDivElement, ResultsProps>(function Results({ resu
 
       <div className="button-container">
         <button type="button" className="btn-secondary" onClick={handlePrint}>
-          Print Results
+          {STRINGS.buttons.print}
         </button>
         <button type="button" className="btn-secondary" onClick={handleExport}>
-          Export to Text
+          {STRINGS.buttons.exportText}
         </button>
       </div>
     </div>

@@ -39,10 +39,10 @@ export interface CalculatedExclusionPeriod {
 export interface CalculatorParams {
   arraignmentDate: string;
   custodyStatus: CustodyStatus;
-  releaseDate: string;
+  releaseDate: string | null;
   resets: ResetEvent[];
   exclusions: ExclusionPeriod[];
-  scheduledTrialDate: string;
+  scheduledTrialDate: string | null;
   useCurePeriod: boolean;
 }
 

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { formatDate, getResetTypeLabel, getExclusionTypeLabel, parseLocalDate } from '../../utils/trialCalculator';
+import { STRINGS } from '../../strings';
 import type { CalculationResults } from '../../types';
 
 interface TimelineProps {
@@ -27,8 +28,8 @@ function Timeline({ results }: TimelineProps) {
       date: results.initialCommencementDate,
       type: 'arraignment',
       className: 'timeline-event',
-      title: 'Initial Arraignment',
-      description: 'Initial commencement date'
+      title: STRINGS.timeline.initialArraignment,
+      description: STRINGS.timeline.initialCommencementDesc
     });
 
     // Resets
@@ -39,7 +40,7 @@ function Timeline({ results }: TimelineProps) {
           date: parseLocalDate(reset.date),
           type: 'reset',
           className: 'timeline-event timeline-reset',
-          title: 'Commencement Date Reset',
+          title: STRINGS.timeline.resetTitle,
           description: getResetTypeLabel(reset.type),
           notes: reset.notes || undefined
         });
@@ -58,8 +59,8 @@ function Timeline({ results }: TimelineProps) {
         date: new Date(lastResetDate.getTime() + 1), // Just after last reset
         type: 'status-change',
         className: 'timeline-event timeline-info',
-        title: 'Status Change',
-        description: 'Defendant released from jail before 60-day limit expired. Time limit extended to 90 days.'
+        title: STRINGS.timeline.statusChangeTitle,
+        description: STRINGS.timeline.statusChangeDesc
       });
     }
 
@@ -71,7 +72,7 @@ function Timeline({ results }: TimelineProps) {
           date: period.startDate,
           type: 'exclusion',
           className: 'timeline-event timeline-exclusion',
-          title: `Excluded Period (${period.days} days)`,
+          title: STRINGS.timeline.excludedPeriodTitle(period.days),
           description: getExclusionTypeLabel(period.type),
           dateRange: { start: period.startDate, end: period.endDate }
         });
@@ -85,8 +86,8 @@ function Timeline({ results }: TimelineProps) {
         date: results.scheduledTrialDate,
         type: 'trial',
         className: `timeline-event ${results.isTimely ? 'timeline-trial-timely' : 'timeline-trial-untimely'}`,
-        title: 'Scheduled Trial',
-        description: results.isTimely ? 'Within allowable time' : 'OUTSIDE ALLOWABLE TIME'
+        title: STRINGS.timeline.scheduledTrial,
+        description: results.isTimely ? STRINGS.timeline.withinTime : STRINGS.timeline.outsideTime
       });
     }
 
@@ -96,8 +97,8 @@ function Timeline({ results }: TimelineProps) {
       date: results.finalDeadline,
       type: 'deadline',
       className: 'timeline-event timeline-deadline',
-      title: 'Trial Deadline',
-      description: `${results.baseTimeLimit} days + ${results.excludedDays} excluded days`
+      title: STRINGS.timeline.trialDeadline,
+      description: STRINGS.timeline.deadlineDesc(results.baseTimeLimit, results.excludedDays)
     });
 
     // Cure Period
@@ -107,8 +108,8 @@ function Timeline({ results }: TimelineProps) {
         date: results.cureDeadline,
         type: 'cure',
         className: 'timeline-event timeline-cure',
-        title: 'Cure Period Deadline',
-        description: `Extended by ${results.cureDays} days (one-time extension)`
+        title: STRINGS.timeline.cureDeadlineTitle,
+        description: STRINGS.timeline.cureDeadlineDesc(results.cureDays)
       });
     }
 
@@ -118,7 +119,7 @@ function Timeline({ results }: TimelineProps) {
 
   return (
     <div className="timeline-container">
-      <h3>Timeline</h3>
+      <h3>{STRINGS.sections.timeline}</h3>
 
       {events.map((event) => (
         <div key={event.id} className={event.className}>

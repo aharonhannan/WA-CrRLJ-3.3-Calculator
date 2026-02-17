@@ -1,4 +1,5 @@
 import { formatDate } from '../../utils/trialCalculator';
+import { STRINGS } from '../../strings';
 import type { CalculationResults } from '../../types';
 
 interface ResultSummaryProps {
@@ -14,20 +15,20 @@ function ResultSummary({ results }: ResultSummaryProps) {
     <div className="result-box">
       {results.scheduledTrialDate && (
         <div className={`result-status ${results.isTimely ? 'status-timely' : 'status-untimely'}`}>
-          <h3>{results.isTimely ? '✓ TIMELY' : '✗ UNTIMELY'}</h3>
-          <p>Scheduled Trial: {formatDate(results.scheduledTrialDate)}</p>
+          <h3>{results.isTimely ? STRINGS.status.timely : STRINGS.status.untimely}</h3>
+          <p>{STRINGS.results.scheduledTrial} {formatDate(results.scheduledTrialDate)}</p>
         </div>
       )}
 
       <div className="deadline-info">
         <div className="deadline-item">
-          <label>Trial Deadline:</label>
+          <label>{STRINGS.results.trialDeadline}</label>
           <span className="deadline-date">{formatDate(applicableDeadline)}</span>
         </div>
         {results.daysUntilDeadline !== null && (
           <div className="deadline-item">
-            <label>Days Until Deadline:</label>
-            <span className="days-count">{results.daysUntilDeadline} days</span>
+            <label>{STRINGS.results.daysUntilDeadline}</label>
+            <span className="days-count">{results.daysUntilDeadline} {STRINGS.results.days}</span>
           </div>
         )}
       </div>

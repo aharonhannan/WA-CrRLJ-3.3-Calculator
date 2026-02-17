@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { STRINGS } from '../strings';
 import type { MessageType } from '../types';
 
 interface MessageOverlayProps {
@@ -51,15 +52,15 @@ function MessageOverlay({ message, type = 'info', onClose, onConfirm }: MessageO
           {isConfirm ? (
             <>
               <button className="btn-secondary" onClick={onClose}>
-                Cancel
+                {STRINGS.buttons.cancel}
               </button>
               <button className="btn-primary" onClick={handleConfirm}>
-                Confirm
+                {STRINGS.buttons.confirm}
               </button>
             </>
           ) : (
             <button className="btn-primary" onClick={onClose}>
-              OK
+              {STRINGS.buttons.ok}
             </button>
           )}
         </div>
